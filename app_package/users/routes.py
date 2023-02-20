@@ -14,6 +14,7 @@ from app_package.utilsDecorators import token_required
 import logging
 import os
 from logging.handlers import RotatingFileHandler
+import json
 
 
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
@@ -48,17 +49,41 @@ def are_we_working():
 
     return jsonify("Yes! We're up! in the utilties02 machine")
 
+@users.route('/diagnostics', methods=['GET'])
+def diagnostics():
+    logger_users.info(f"- ws09api diagnostics pinged")
+    if current_app.config.get('WS_API_PASSWORD') == request.headers.get('password'):
+
+        logger_users.info(f"{current_app.config.get('WS_API_PASSWORD')}")
+
+        diagnostics_dict = {}
+
+        #remove any current_app.config.items NOT json serializable
+        for key, value in current_app.config.items():
+            try:
+                json.dumps(value)
+                diagnostics_dict[key]=value
+            except (TypeError, OverflowError):
+                pass
+
+        diagnostics_dict_json = json.dumps(diagnostics_dict)
+
+
+        return diagnostics_dict_json
+    else:
+        return make_response('Could note verify sender', 401)
+
 
 @users.route('/add_user', methods=['POST'])
 def add_users():
     logger_users.info(f"- add_user endpoint pinged -")
 
-    # TODO: Check email is not empty
-    # TODO: Check a password exits
-
     if current_app.config.get('WS_API_PASSWORD') == request.headers.get('password'):
+
         request_data = request.get_json()
 
+        if request_data.get('email') in ("", None) or request_data.get('password') in ("" , None):
+            return make_response('User must have email and password', 409)
 
         user_exists = sess.query(Users).filter_by(email= request_data.get('email')).first()
 
@@ -66,14 +91,19 @@ def add_users():
             return make_response('User already exists', 409)
 
         hash_pw = bcrypt.hashpw(request_data.get('password').encode(), salt)
+        new_user = Users()
 
-        new_user = Users( email = request_data['email'], password = hash_pw)
+        for key, value in request_data.items():
+            if key == "password":
+                setattr(new_user, "password", hash_pw)
+            elif key in Users.__table__.columns.keys():
+                setattr(new_user, key, value)
 
         sess.add(new_user)
         sess.commit()
         return jsonify({"message": f"new user created: {request_data.get('email')}"})
     else:
-        return make_response('Could note verify sender', 401, {'WWW-Authenticate' : 'uknown sender'})
+        return make_response('Could note verify sender', 401)
 
 
 
@@ -88,12 +118,12 @@ def login():
         logger_users.info(f"- auth.username: {auth.username} -")
 
         if not auth or not auth.username or not auth.password:
-            return make_response('Could note verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
+            return make_response('Could note verify', 401)
 
         user = sess.query(Users).filter_by(email= auth.username).first()
 
         if not user:
-            return make_response('Could note verify - user not found', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
+            return make_response('Could note verify - user not found', 401)
 
         logger_users.info(f"- checking password -")
 
@@ -105,9 +135,9 @@ def login():
             token = s.dumps({'user_id': user.id}).decode('utf-8')
             return jsonify({'token': token})
 
-        return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
+        return make_response('Could not verify', 401)
     else:
-        return make_response('Could note verify sender', 401, {'WWW-Authenticate' : 'uknown sender'})
+        return make_response('Could note verify sender', 401)
 
 @users.route('/user_account_data',methods=['GET'])
 @token_required
