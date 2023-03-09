@@ -13,7 +13,7 @@ formatter_terminal = logging.Formatter('%(asctime)s:%(filename)s:%(name)s:%(mess
 logger_utilDecorators = logging.getLogger(__name__)
 logger_utilDecorators.setLevel(logging.DEBUG)
 
-file_handler = RotatingFileHandler(os.path.join(os.environ.get('WS_ROOT_API'),'logs','utilDecorators.log'), mode='a', maxBytes=5*1024*1024,backupCount=2)
+file_handler = RotatingFileHandler(os.path.join(os.environ.get('API_ROOT'),'logs','utilDecorators.log'), mode='a', maxBytes=5*1024*1024,backupCount=2)
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()

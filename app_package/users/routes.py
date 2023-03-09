@@ -23,7 +23,7 @@ formatter_terminal = logging.Formatter('%(asctime)s:%(filename)s:%(name)s:%(mess
 logger_users = logging.getLogger(__name__)
 logger_users.setLevel(logging.DEBUG)
 
-file_handler = RotatingFileHandler(os.path.join(os.environ.get('WS_ROOT_API'),'logs','users_routes.log'), mode='a', maxBytes=5*1024*1024,backupCount=2)
+file_handler = RotatingFileHandler(os.path.join(os.environ.get('API_ROOT'),'logs','users.log'), mode='a', maxBytes=5*1024*1024,backupCount=2)
 file_handler.setFormatter(formatter)
 
 stream_handler = logging.StreamHandler()
@@ -171,6 +171,7 @@ def get_user_data(current_user):#current user is passed in by @token_required
     # user_data['height_feet'] = current_user.height_feet
     # user_data['password'] = user.password
 
-    return(user_data)
+    # return(user_data)
+    return jsonify(user_data)
 
 
